@@ -1,0 +1,294 @@
+---
+title: "Forecasting Monthly Gold Price Project"
+author: "Jean Tinialaou"
+date: "2026-11-18"
+output: html_document
+---
+
+# Monthly Gold Price Forecast Project
+
+```{r}
+library(fpp2)
+library(forecast)
+
+# Load Data
+
+gold.data <- read.csv("C:/Users/jeant/Downloads/gold-data.csv")
+```
+
+
+```{r}
+View(gold.data)
+
+```
+## Time Series of gold prices from October 2022 to October 2026
+```{r}
+gold.data_up <- gold.data$Gold_Price
+gold.data_ts <- ts(gold.data_up, frequency = 12, start = c(2022,10)) 
+plot(gold.data_ts, main= "Monthly Gold Trend (Oct 2022 - Oct 2026")
+```
+* Due the start of US - Iran in February 2026, the gold price skyrocketed and dropped in July 2026.
+
+### Time Series 
+```{r}
+gold.data_wins <- window(gold.data_ts, start = c(2025,10))
+plot(gold.data_wins)
+```
+  * Summary
+  
+## Central Tendency
+  
+```{r}
+summary(gold.data_wins)
+```
+## Graph plots
+
+```{r}
+boxplot(gold.data_wins, main= "Boxplot of gold Data from (October 2024)")
+hist(gold.data_wins, main= "Histogram of gold Data from (October 2024)")
+Acf(gold.data_wins, main= "Acf of gold Data from (October 2024)")
+
+```
+## Summarization
+
+
+# Decomposition **Problem**
+#### Plot the decomposition of the time series
+
+```{r}
+stl_decomp <- stl(gold.data_ts, s.window = "periodic")
+plot(stl_decomp, main = 'Decomposition plot')
+```
+```{r}
+decom <- decompose(gold.data_ts)
+decom$gold_Price
+```
+
+
+
+### Foresting using Naive Method
+```{r}
+gold_naive = naive(gold.data_wins)
+plot(gold_naive, main = "Naive Forecast")
+```
+### Residual Analysis
+```{r}
+plot(gold_naive$residuals, main = "Naive forecast residuals plot")
+```
+### Histogram of the Residuals Using Naive
+```{r}
+hist(gold_naive$residuals, main ='Histogram of Residuals')
+```
+### Plotting fitted Values vs Residuals
+```{r}
+cbind(Fitted = fitted(gold_naive),
+      Residuals=residuals(gold_naive)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+```
+####Plotting Actual Values vs Residual Values
+```{r}
+cbind(Actual = gold.data_wins,
+      Residuals=residuals(gold_naive)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Actual, y=Residuals)) + geom_point()
+```
+### Plotting Acf for the Residual
+```{r}
+Acf(gold_naive$residuals, main = "ACF of Naive residuals")
+```
+### Printing the five Measures of Naive Method
+```{r}
+naive_accuracy <- accuracy(gold_naive)
+naive_accuracy
+```
+## Forecasting for the Next Year 2027
+```{r}
+forecast(gold.data_wins)
+plot(forecast(gold.data_wins))
+```
+#### Summarizing 
+
+
+## Plotting Simple Moving Average
+```{r}
+mavg3_forecast = ma(gold.data_wins,order=3)
+mavg6_forecast = ma(gold.data_wins,order=6)
+mavg9_forecast = ma(gold.data_wins,order=9) 
+plot(gold.data_wins, main = "Plot along with moving averages")
+lines(mavg3_forecast, col="Red")
+lines(mavg6_forecast, col="Blue")
+lines(mavg9_forecast, col="Green")
+```
+### Forecasting the gold price for the next 12 months
+```{r}
+MA3_forecast <- forecast(mavg3_forecast, h = 12)
+plot(MA3_forecast)
+```
+### Forecasting the gold price for the next 12 months using Simple Moving Average
+```{r}
+ses_data <- ses(gold.data_wins)
+plot(ses_data)
+```
+### Summary the Five Measures of Simple Moving Average
+```{r}
+summary(ses_data)
+```
+### Plotting the Residual Values of Simple Moving Average
+```{r}
+plot(ses_data$residuals, main = "Simple Smoothing forecast residuals plot")
+```
+### Plotting a Histogram of the Residual Values
+```{r}
+hist(ses_data$residuals, main ='Histogram of Residuals')
+```
+### Plot of fitted values vs. Residuals
+```{r}
+cbind(Fitted = fitted(ses_data),
+      Residuals=residuals(ses_data)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Fitted, y=Residuals)) + geom_point()
+```
+### Plotting of Actual values vs. Residuals
+
+```{r}
+cbind(Actual = gold.data_wins,
+      Residuals=residuals(ses_data)) %>%
+  as.data.frame() %>%
+  ggplot(aes(x=Actual, y=Residuals)) + geom_point()
+```
+### Plotting the ACF vs Residuals
+```{r}
+Acf(ses_data$residuals, main = "ACF of Naive residuals")
+```
+### Printing the 5 measures of Accuracy for this Forecasting Technique
+```{r}
+ses_accuracy <- accuracy(ses_data)
+ses_accuracy
+```
+### Time series value for next year
+```{r}
+forecast(ses_data)
+plot(forecast(ses_data))
+```
+## HoltWinters
+### Performing Holt-Winters forecast for next 12 months for the time series.
+
+# ARIMA
+```{r}
+ndiffs(gold.data_ts)
+```
+
+```{r}
+tsdisplay(gold.data_ts)
+```
+```{r}
+goldtimeseriesdiff1 <- diff(gold.data_ts, differences=1)
+plot(goldtimeseriesdiff1)
+```
+```{r}
+tsdisplay(goldtimeseriesdiff1)
+```
+```{r}
+auto_fit <- auto.arima(goldtimeseriesdiff1, trace=TRUE, stepwise = FALSE)
+```
+```{r}
+auto_fit
+```
+```{r}
+attributes(auto_fit)
+```
+```{r}
+plot(forecast(auto_fit, h=8, level = c(99.5)))
+```
+```{r}
+Acf(auto_fit$residuals)
+```
+```{r}
+Box.test(residuals(auto_fit), lag = 20, type = "Ljung")
+```
+```{r}
+plot.ts(residuals(auto_fit))
+```
+```{r}
+hist(auto_fit$residuals)
+```
+```{r}
+tsdiag(auto_fit)
+```
+```{r}
+plot(euretail)
+```
+```{r}
+nsdiffs(euretail)
+```
+```{r}
+ndiffs(euretail)
+```
+```{r}
+ndiffs((diff(euretail, 4)))
+```
+```{r}
+tsdisplay(diff(diff(euretail, 4)))
+```
+```{r}
+fit3 <- auto.arima(euretail,trace = TRUE, stepwise = FALSE)
+```
+```{r}
+fit3
+```
+```{r}
+Acf(fit3$residuals)
+```
+```{r}
+Box.test(residuals(fit3), lag = 20, type = "Ljung")
+```
+```{r}
+plot.ts(residuals(fit3))
+```
+```{r}
+hist(fit3$residuals)
+```
+```{r}
+tsdiag(fit3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
